@@ -22,11 +22,6 @@ type options struct {
 }
 
 func NewCmdServer() *cobra.Command {
-	var (
-		kubeConfig    string
-		configContext string
-	)
-
 	cmd := &cobra.Command{
 		Use: "run",
 		Run: func(cmd *cobra.Command, args []string) {
@@ -49,8 +44,6 @@ func NewCmdServer() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&kubeConfig, "kube-config", "", "Path to kubeconfig file with authorization information (the master location is set by the master flag).")
-	cmd.Flags().StringVar(&configContext, "config-context", "", "Use the context in kubeconfig")
 	return cmd
 }
 
