@@ -1,0 +1,1 @@
+# searchlight-plugin-prototype
