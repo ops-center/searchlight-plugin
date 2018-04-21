@@ -15,115 +15,54 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-type Server struct {
+type Plugin struct {
 	podClient corev1.PodInterface
 }
 
-type postData struct {
+type Request struct {
 	Warning  *string `json:"warning,omitempty"`
 	Critical *string `json:"critical,omitempty"`
 }
 
-type CheckResponse struct {
-	Code    *int32 `json:"code,omitempty"`
+type Response struct {
+	Code    int32  `json:"code"`
 	Message string `json:"message,omitempty"`
 }
 
-func (s *Server) ListenAndServe() {
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case "POST":
-			data, err := ioutil.ReadAll(r.Body)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
-			}
-
-			var pd postData
-			if err := json.Unmarshal(data, &pd); err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
-			}
-
-			s.checkPodCount(w, &pd)
-
-		default:
-			http.Error(w, "", http.StatusForbidden)
-			return
-		}
-	})
-	if err := http.ListenAndServe(":80", http.DefaultServeMux); err != nil {
-		log.Fatal(err)
-	}
-}
-
-func (s *Server) checkPodCount(w http.ResponseWriter, pd *postData) {
+func (s *Plugin) Check(pd *Request) (*Response, error) {
 	objects, err := s.podClient.List(metav1.ListOptions{})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+		return nil, err
 	}
 
 	if pd.Critical != nil {
 		cv, err := strconv.Atoi(*pd.Critical)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
+			return nil, err
 		}
 
 		if len(objects.Items) >= cv {
-			code := int32(2)
-			resp := &CheckResponse{
-				Code:    &code,
+			return &Response{
+				Code:    2,
 				Message: fmt.Sprintf(`More than "%d" pod exists`, cv),
-			}
-			data, err := json.Marshal(resp)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-
-			w.Write(data)
-			return
+			}, nil
 		}
 	}
 
 	if pd.Warning != nil {
 		cv, err := strconv.Atoi(*pd.Warning)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
+			return nil, err
 		}
 
 		if len(objects.Items) >= cv {
-			code := int32(1)
-			resp := &CheckResponse{
-				Code:    &code,
+			return &Response{
+				Code:    1,
 				Message: fmt.Sprintf(`More than "%d" pod exists`, cv),
-			}
-			data, err := json.Marshal(resp)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-
-			w.Write(data)
-			return
+			}, nil
 		}
 	}
-
-	code := int32(0)
-	resp := &CheckResponse{
-		Code:    &code,
-		Message: "",
-	}
-	data, err := json.Marshal(resp)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Write(data)
+	return &Response{Code: 0}, nil
 }
 
 func main() {
@@ -137,9 +76,40 @@ func main() {
 		log.Fatal(err)
 	}
 
-	opts := &Server{
+	p := &Plugin{
 		podClient: kClient.CoreV1().Pods(core.NamespaceAll),
 	}
 
-	opts.ListenAndServe()
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPost:
+			data, err := ioutil.ReadAll(r.Body)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+
+			var req Request
+			if err := json.Unmarshal(data, &req); err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+
+			resp, err := p.Check(&req)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			err = json.NewEncoder(w).Encode(resp)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+		default:
+			http.Error(w, "", http.StatusNotImplemented)
+			return
+		}
+	})
+	http.ListenAndServe(":80", http.DefaultServeMux)
 }
