@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: searchlight-plugin
+  labels:
+    app: searchlight-plugin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: searchlight-plugin
+  template:
+    metadata:
+      labels:
+        app: searchlight-plugin
+    spec:
+      containers:
+      - name: webhook
+        image: appscode/searchlight-plugin-go
+        imagePullPolicy: Always
+        args:
+        - run
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: searchlight-plugin
+  labels:
+    app: searchlight-plugin
+spec:
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+  selector:
+    app: searchlight-plugin

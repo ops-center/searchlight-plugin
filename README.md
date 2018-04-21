@@ -1,1 +1,1 @@
-# searchlight-plugin-prototype
+# searchlight-plugin
