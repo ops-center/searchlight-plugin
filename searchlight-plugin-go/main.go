@@ -89,7 +89,7 @@ func main() {
 		client: kClient.CoreV1().Pods(core.NamespaceAll),
 	}
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/check-pod-count", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodPost:
 			data, err := ioutil.ReadAll(r.Body)
