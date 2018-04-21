@@ -24,8 +24,17 @@ type Request struct {
 	Critical *string `json:"critical,omitempty"`
 }
 
+type State int32
+
+const (
+	OK       State = iota // 0
+	Warning               // 1
+	Critical              // 2
+	Unknown               // 3
+)
+
 type Response struct {
-	Code    int32  `json:"code"`
+	Code    State  `json:"code"`
 	Message string `json:"message,omitempty"`
 }
 
@@ -43,7 +52,7 @@ func (p *Plugin) Check(req *Request) (*Response, error) {
 
 		if len(objects.Items) >= cv {
 			return &Response{
-				Code:    2,
+				Code:    Critical,
 				Message: fmt.Sprintf(`More than "%d" pod exists`, cv),
 			}, nil
 		}
@@ -57,12 +66,12 @@ func (p *Plugin) Check(req *Request) (*Response, error) {
 
 		if len(objects.Items) >= cv {
 			return &Response{
-				Code:    1,
+				Code:    Warning,
 				Message: fmt.Sprintf(`More than "%d" pod exists`, cv),
 			}, nil
 		}
 	}
-	return &Response{Code: 0}, nil
+	return &Response{Code: OK}, nil
 }
 
 func main() {
