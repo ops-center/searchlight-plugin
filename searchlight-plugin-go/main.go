@@ -16,7 +16,7 @@ import (
 )
 
 type Plugin struct {
-	podClient corev1.PodInterface
+	client corev1.PodInterface
 }
 
 type Request struct {
@@ -29,14 +29,14 @@ type Response struct {
 	Message string `json:"message,omitempty"`
 }
 
-func (s *Plugin) Check(pd *Request) (*Response, error) {
-	objects, err := s.podClient.List(metav1.ListOptions{})
+func (p *Plugin) Check(req *Request) (*Response, error) {
+	objects, err := p.client.List(metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	if pd.Critical != nil {
-		cv, err := strconv.Atoi(*pd.Critical)
+	if req.Critical != nil {
+		cv, err := strconv.Atoi(*req.Critical)
 		if err != nil {
 			return nil, err
 		}
@@ -49,8 +49,8 @@ func (s *Plugin) Check(pd *Request) (*Response, error) {
 		}
 	}
 
-	if pd.Warning != nil {
-		cv, err := strconv.Atoi(*pd.Warning)
+	if req.Warning != nil {
+		cv, err := strconv.Atoi(*req.Warning)
 		if err != nil {
 			return nil, err
 		}
@@ -77,7 +77,7 @@ func main() {
 	}
 
 	p := &Plugin{
-		podClient: kClient.CoreV1().Pods(core.NamespaceAll),
+		client: kClient.CoreV1().Pods(core.NamespaceAll),
 	}
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
