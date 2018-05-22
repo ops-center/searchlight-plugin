@@ -14,6 +14,7 @@ spec:
       labels:
         app: searchlight-plugin
     spec:
+      serviceAccountName: searchlight-plugin
       containers:
       - name: webhook
         image: appscode/searchlight-plugin-go
@@ -36,3 +37,38 @@ spec:
     targetPort: 80
   selector:
     app: searchlight-plugin
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app: searchlight-plugin
+  name: searchlight-plugin
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: searchlight-plugin
+  labels:
+    app: searchlight-plugin
+rules:
+- apiGroups: [""]
+  resources:
+  - pods
+  verbs: ["list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: searchlight-plugin
+  labels:
+    app: searchlight-plugin
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: searchlight-plugin
+subjects:
+- kind: ServiceAccount
+  name: searchlight-plugin
+  namespace: default
+---

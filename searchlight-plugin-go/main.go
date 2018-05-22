@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"strconv"
 
 	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,8 +19,8 @@ type Plugin struct {
 }
 
 type Request struct {
-	Warning  *string `json:"warning,omitempty"`
-	Critical *string `json:"critical,omitempty"`
+	Warning  *int `json:"warning,omitempty"`
+	Critical *int `json:"critical,omitempty"`
 }
 
 type State int32
@@ -45,11 +44,7 @@ func (p *Plugin) Check(req *Request) (*Response, error) {
 	}
 
 	if req.Critical != nil {
-		cv, err := strconv.Atoi(*req.Critical)
-		if err != nil {
-			return nil, err
-		}
-
+		cv := *req.Critical
 		if len(objects.Items) >= cv {
 			return &Response{
 				Code:    Critical,
@@ -59,11 +54,7 @@ func (p *Plugin) Check(req *Request) (*Response, error) {
 	}
 
 	if req.Warning != nil {
-		cv, err := strconv.Atoi(*req.Warning)
-		if err != nil {
-			return nil, err
-		}
-
+		cv := *req.Warning
 		if len(objects.Items) >= cv {
 			return &Response{
 				Code:    Warning,
